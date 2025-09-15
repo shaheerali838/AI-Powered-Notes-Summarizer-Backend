@@ -1,9 +1,9 @@
-import express from "express";
+import app from "../src/app.js";
 
-const app = express();
+const PORT = process.env.PORT || 5000;
 
-app.get("/", (req, res) => {
-  res.send("Hello from Express on Vercel!");
+app.listen(PORT, () => {
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
 
 export default app;
