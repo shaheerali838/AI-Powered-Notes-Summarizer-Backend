@@ -1,3 +1,4 @@
+// /api/ocr.js
 import { createWorker } from "tesseract.js";
 
 export default async function handler(req, res) {
@@ -6,23 +7,25 @@ export default async function handler(req, res) {
   }
 
   try {
-    const formData = await new Promise((resolve, reject) => {
-      const data = [];
-      req.on("data", (chunk) => data.push(chunk));
-      req.on("end", () => resolve(Buffer.concat(data)));
-      req.on("error", reject);
-    });
+    const formData = await req.formData();
+    const file = formData.get("file");
 
-    // Convert buffer -> base64 (for tesseract)
-    const imageBase64 = formData.toString("base64");
+    if (!file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
     const worker = await createWorker("eng");
-    const { data } = await worker.recognize(Buffer.from(imageBase64, "base64"));
+    const {
+      data: { text },
+    } = await worker.recognize(buffer);
     await worker.terminate();
 
-    return res.status(200).json({ text: data.text });
+    res.status(200).json({ text });
   } catch (err) {
     console.error("OCR error:", err);
-    return res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Failed to process OCR" });
   }
 }
