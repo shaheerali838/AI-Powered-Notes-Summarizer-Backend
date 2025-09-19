@@ -10,7 +10,8 @@ export const extractTextFromPDF = async (buffer) => {
     const data = await pdf(buffer);
     return data.text;
   } catch (error) {
-    throw new Error(`PDF extraction failed: ${error.message}`);
+    console.error("PDF extraction failed:", error);
+    throw new Error("PDF extraction failed");
   }
 };
 
@@ -22,7 +23,8 @@ export const extractTextFromDOCX = async (buffer) => {
     const result = await mammoth.extractRawText({ buffer });
     return result.value;
   } catch (error) {
-    throw new Error(`DOCX extraction failed: ${error.message}`);
+    console.error("DOCX extraction failed:", error);
+    throw new Error("DOCX extraction failed");
   }
 };
 
@@ -33,10 +35,13 @@ export const extractTextFromImage = async (buffer) => {
   let worker;
   try {
     worker = await createWorker("eng");
-    const { data: { text } } = await worker.recognize(buffer);
+    const {
+      data: { text },
+    } = await worker.recognize(buffer);
     return text.trim();
   } catch (error) {
-    throw new Error(`OCR extraction failed: ${error.message}`);
+    console.error("OCR extraction failed:", error);
+    throw new Error("OCR extraction failed");
   } finally {
     if (worker) {
       await worker.terminate();
@@ -55,7 +60,10 @@ export const extractTextFromFile = async (file) => {
 
     if (mimetype === "application/pdf") {
       extractedText = await extractTextFromPDF(buffer);
-    } else if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    } else if (
+      mimetype ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ) {
       extractedText = await extractTextFromDOCX(buffer);
     } else if (mimetype.startsWith("image/")) {
       extractedText = await extractTextFromImage(buffer);
@@ -82,7 +90,11 @@ export const extractTextFromFile = async (file) => {
  */
 export const getFileTypeDescription = (mimetype) => {
   if (mimetype === "application/pdf") return "PDF";
-  if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") return "DOCX";
+  if (
+    mimetype ===
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  )
+    return "DOCX";
   if (mimetype.startsWith("image/")) return "Image";
   return "Unknown";
 };
