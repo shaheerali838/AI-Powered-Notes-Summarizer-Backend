@@ -22,7 +22,7 @@
     "joi": "^18.0.1",
     "mammoth": "^1.11.0",
     "multer": "^2.0.2",
-    "pdf-parse": "^1.1.1",
+    "pdf-extraction": "^1.0.2",
     "tesseract.js": "^6.0.1"
   }
 }

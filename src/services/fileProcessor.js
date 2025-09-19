@@ -1,4 +1,5 @@
-import pdf from "pdf-parse";
+import fs from "fs";
+import pdfExtract from "pdf-extraction";
 import mammoth from "mammoth";
 import { createWorker } from "tesseract.js";
 
@@ -7,7 +8,7 @@ import { createWorker } from "tesseract.js";
  */
 export const extractTextFromPDF = async (buffer) => {
   try {
-    const data = await pdf(buffer);
+    const data = await pdfExtract(buffer);
     return data.text;
   } catch (error) {
     console.error("PDF extraction failed:", error);
@@ -98,4 +99,3 @@ export const getFileTypeDescription = (mimetype) => {
   if (mimetype.startsWith("image/")) return "Image";
   return "Unknown";
 };
-// done
