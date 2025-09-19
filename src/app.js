@@ -10,11 +10,12 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-// ✅ Enable CORS for frontend (Vite default port 5173)
+// ✅ Enable CORS for frontend (Vercel hosted domain)
 app.use(
   cors({
     origin: "https://ai-powered-notes-summarizer.vercel.app",
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // include OPTIONS
+    allowedHeaders: ["Content-Type", "Authorization"], // allow headers
     credentials: true,
   })
 );
