@@ -1,4 +1,3 @@
-import fs from "fs";
 import pdfExtract from "pdf-extraction";
 import mammoth from "mammoth";
 import { createWorker } from "tesseract.js";
