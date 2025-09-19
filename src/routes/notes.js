@@ -9,9 +9,14 @@ const router = express.Router();
  * Upload and process files (PDF, DOCX, Images)
  * Extract text and generate summary
  */
-router.post("/upload", 
-  uploadFile,
-  handleUploadError,
+router.post(
+  "/upload",
+  (req, res, next) => {
+    uploadFile(req, res, (err) => {
+      if (err) return handleUploadError(err, req, res, next);
+      next();
+    });
+  },
   uploadFileController
 );
 
