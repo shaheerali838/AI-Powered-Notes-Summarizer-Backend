@@ -3,7 +3,7 @@ import mammoth from "mammoth";
 import { createWorker } from "tesseract.js";
 
 /**
- * Extract text from PDF buffer
+ *  Extract text from PDF buffer
  */
 export const extractTextFromPDF = async (buffer) => {
   try {
