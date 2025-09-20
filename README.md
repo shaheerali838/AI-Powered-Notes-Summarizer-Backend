@@ -1,411 +1,335 @@
-# AI Notes Summarizer
+# AI Notes Summarizer Backend
 
-A powerful full-stack web application that uses Google's Gemini AI to transform lengthy notes, documents, and research materials into concise, structured summaries. Built with React frontend and Node.js backend, featuring advanced file processing and Firebase integration.
+A robust serverless backend built with Next.js API routes for AI-powered text extraction and summarization. Supports PDF, DOCX, and image processing with OCR capabilities.
 
-## 🌟 Features
+## 🚀 Quick Deploy to Vercel
 
-### Core AI Functionality
-- **Google Gemini AI Integration**: Advanced text summarization with hierarchical key points
-- **Multi-Format Processing**: Support for PDF, DOCX, and image files (OCR)
-- **Intelligent Text Extraction**: PDF parsing, Word document processing, and OCR for images
-- **Structured Output**: Professional summaries with numbered, hierarchical key points
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/ai-notes-summarizer-backend)
 
-### File Processing Capabilities
-- **PDF Documents**: Text extraction using pdf-extraction library
-- **Word Documents**: DOCX file processing with Mammoth.js
-- **Image OCR**: Text recognition from images using Tesseract.js
-- **Batch Processing**: Handle multiple files simultaneously
-- **File Validation**: Size limits (10MB) and type checking
+## 📋 Prerequisites
 
-### User Experience
-- **Responsive Design**: Seamless experience across all devices
-- **Real-time Processing**: Live progress tracking for uploads
-- **Multiple Input Methods**: Paste text or upload files
-- **History Management**: Track and revisit previous summaries
-- **Authentication**: Firebase Auth with Google, Facebook, email, and guest mode
+- Node.js 18+ 
+- MongoDB Atlas account
+- Google OAuth credentials (optional)
+- Facebook App credentials (optional)
 
-### Backend Features
-- **RESTful API**: Clean, documented API endpoints
-- **Firebase Integration**: Firestore database for user data and history
-- **Error Handling**: Comprehensive validation and error responses
-- **CORS Configuration**: Secure cross-origin resource sharing
-- **Vercel Deployment**: Serverless function deployment
+## 🛠️ Installation
+
+1. **Clone and install dependencies:**
+   ```bash
+   git clone <your-repo-url>
+   cd ai-notes-summarizer-backend
+   npm install
+   ```
+
+2. **Set up environment variables:**
+   ```bash
+   cp .env.example .env.local
+   ```
+
+3. **Configure your `.env.local` file:**
+   ```env
+   # Required
+   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/ai-notes-summarizer
+   JWT_SECRET=your-super-secret-jwt-key-here
+   
+   # Optional (for social auth)
+   GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+   FACEBOOK_APP_ID=your-facebook-app-id
+   FACEBOOK_APP_SECRET=your-facebook-app-secret
+   
+   # Optional (for custom OCR language data)
+   TESSDATA_URL=https://tessdata.projectnaptha.com/4.0.0/
+   
+   # Production settings
+   NODE_ENV=production
+   ALLOWED_ORIGINS=https://your-frontend-domain.vercel.app
+   ```
+
+4. **Run locally:**
+   ```bash
+   npm run dev
+   ```
+
+## 🌐 Deploy to Vercel
+
+### Method 1: Vercel CLI
+```bash
+npm i -g vercel
+vercel --prod
+```
+
+### Method 2: GitHub Integration
+1. Push your code to GitHub
+2. Connect your GitHub repo to Vercel
+3. Set environment variables in Vercel dashboard
+4. Deploy automatically on push
+
+### Required Environment Variables in Vercel:
+- `MONGODB_URI` - Your MongoDB connection string
+- `JWT_SECRET` - Secret key for JWT tokens (generate with `openssl rand -base64 32`)
+- `GOOGLE_CLIENT_ID` - (Optional) Google OAuth client ID
+- `FACEBOOK_APP_ID` - (Optional) Facebook app ID  
+- `FACEBOOK_APP_SECRET` - (Optional) Facebook app secret
+- `ALLOWED_ORIGINS` - Comma-separated list of allowed origins
+- `NODE_ENV` - Set to `production`
+
+## 📡 API Endpoints
+
+### Authentication
+
+#### POST `/api/auth/verify`
+Verify Google or Facebook tokens and return JWT.
+
+**Request:**
+```json
+{
+  "provider": "google",
+  "token": "google_id_token_here"
+}
+```
+
+**Response:**
+```json
+{
+  "token": "jwt_token_here",
+  "user": {
+    "id": "user_id",
+    "email": "user@example.com",
+    "name": "User Name",
+    "picture": "profile_picture_url",
+    "provider": "google"
+  }
+}
+```
+
+#### POST `/api/auth/guest`
+Create a guest session token.
+
+**Response:**
+```json
+{
+  "token": "guest_jwt_token",
+  "user": {
+    "role": "guest",
+    "sessionId": "guest_session_id",
+    "expiresAt": "2024-01-01T01:00:00.000Z"
+  }
+}
+```
+
+### File Processing
+
+#### POST `/api/upload`
+Upload and extract text from files. Supports both authenticated users and guests.
+
+**Headers:**
+```
+Authorization: Bearer <jwt_token>  // Optional for guests
+Content-Type: multipart/form-data
+```
+
+**Form Data:**
+- `file`: PDF, DOCX, or image file (max 10MB)
+
+**Response:**
+```json
+{
+  "text": "Extracted text content...",
+  "metadata": {
+    "filename": "document.pdf",
+    "fileType": "PDF",
+    "mimetype": "application/pdf",
+    "size": 1024000,
+    "extractedLength": 5000,
+    "wordCount": 800,
+    "processingTime": 1640995200000,
+    "userType": "user"
+  },
+  "savedId": "extraction_id_if_authenticated"
+}
+```
+
+### History (Authenticated Users Only)
+
+#### GET `/api/history`
+Get user's extraction history with pagination.
+
+**Query Parameters:**
+- `page` - Page number (default: 1)
+- `limit` - Items per page (default: 20)
+- `sortBy` - Sort field (default: createdAt)
+- `sortOrder` - Sort direction: asc/desc (default: desc)
+
+**Response:**
+```json
+{
+  "extractions": [
+    {
+      "id": "extraction_id",
+      "filename": "document.pdf",
+      "fileType": "PDF",
+      "fileSize": 1024000,
+      "extractedLength": 5000,
+      "wordCount": 800,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "hasText": true
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 50,
+    "totalPages": 3,
+    "hasNext": true,
+    "hasPrev": false
+  }
+}
+```
+
+#### GET `/api/history/[id]`
+Get specific extraction with full text.
+
+#### DELETE `/api/history/[id]`
+Delete specific extraction.
+
+## 🧪 Testing
+
+### Manual Testing with cURL
+
+1. **Test guest authentication:**
+   ```bash
+   curl -X POST https://your-backend.vercel.app/api/auth/guest \
+     -H "Content-Type: application/json"
+   ```
+
+2. **Test file upload (guest):**
+   ```bash
+   curl -X POST https://your-backend.vercel.app/api/upload \
+     -F "file=@test-document.pdf"
+   ```
+
+3. **Test file upload (authenticated):**
+   ```bash
+   curl -X POST https://your-backend.vercel.app/api/upload \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     -F "file=@test-document.pdf"
+   ```
+
+4. **Test CORS preflight:**
+   ```bash
+   curl -X OPTIONS https://your-backend.vercel.app/api/upload \
+     -H "Origin: https://your-frontend.vercel.app" \
+     -H "Access-Control-Request-Method: POST" \
+     -H "Access-Control-Request-Headers: Authorization"
+   ```
+
+5. **Test history (authenticated):**
+   ```bash
+   curl -X GET https://your-backend.vercel.app/api/history \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN"
+   ```
+
+### Expected Results:
+- ✅ Guest auth returns 200 with token containing `role: 'guest'`
+- ✅ File upload returns 200 with extracted text (no ENOENT errors)
+- ✅ CORS preflight returns proper headers
+- ✅ History returns 401 for unauthenticated, 200 for authenticated
+- ✅ All endpoints return JSON responses, never crash
+
+## 🔧 What Was Fixed/Added
+
+### 1. **ENOENT Errors Solved:**
+- Removed all local file system dependencies
+- Used buffer-based processing for all file types
+- Implemented proper PDF.js configuration for serverless environment
+- No test files or local asset dependencies
+
+### 2. **CORS Issues Resolved:**
+- Comprehensive CORS middleware with proper origin validation
+- Handles preflight OPTIONS requests correctly
+- Supports credentials and custom headers
+- Environment-based origin configuration
+
+### 3. **Route Crashes Prevented:**
+- Comprehensive error handling with try-catch blocks
+- Proper error responses (never crashes, always returns JSON)
+- Multer error handling for file upload edge cases
+- Database connection error handling
+
+### 4. **PDF Parsing Errors Fixed:**
+- Used `pdfjs-dist/legacy/build/pdf.js` for Node.js compatibility
+- Proper buffer handling with Uint8Array conversion
+- Page-by-page text extraction with cleanup
+- Graceful handling of corrupted/password-protected PDFs
+
+### 5. **Authentication & Security:**
+- JWT-based authentication with secure cookies
+- Google and Facebook token verification
+- Guest session support without database persistence
+- Proper CORS and security headers
+
+### 6. **Database Integration:**
+- MongoDB connection reuse pattern for serverless
+- User management and extraction history
+- Proper indexing and pagination
+- Guest users don't persist data (client-side only)
+
+### 7. **File Processing Robustness:**
+- Memory-based multer storage (no disk writes)
+- Comprehensive file validation
+- Support for PDF, DOCX, and image OCR
+- Proper cleanup of processing resources
 
 ## 🏗️ Architecture
 
-### Tech Stack
-**Frontend:**
-- React 18 with Hooks and Context API
-- Tailwind CSS for styling
-- Firebase Authentication
-- React Router for navigation
-- Lucide React for icons
-
-**Backend:**
-- Node.js with Express.js
-- Google Gemini AI API
-- Firebase Admin SDK
-- Multer for file uploads
-- Tesseract.js for OCR
-- PDF-extraction and Mammoth.js for document processing
-
-**Deployment:**
-- Frontend: [Vercel](https://ai-powered-notes-summarizer.vercel.app)
-- Backend: [Vercel Serverless Functions](https://ai-powered-notes-summarizer-backend.vercel.app)
-- Database: Firebase Firestore
-
-### Project Structure
 ```
-├── Frontend/                    # React application
-│   ├── src/
-│   │   ├── components/         # Reusable UI components
-│   │   ├── context/           # React Context providers
-│   │   ├── pages/             # Page components
-│   │   ├── config/            # Firebase client config
-│   │   └── utils/             # Utility functions
-│   └── package.json
-├── api/                        # Vercel API routes
-│   ├── notes.js               # Notes management
-│   └── ocr.js                 # OCR processing
-├── src/                        # Backend source code
-│   ├── controllers/           # Request handlers
-│   ├── services/              # Business logic
-│   ├── routes/                # API routes
-│   ├── middleware/            # Custom middleware
-│   ├── config/                # Configuration files
-│   └── utils/                 # Helper functions
-├── package.json               # Backend dependencies
-├── vercel.json               # Vercel deployment config
-└── .gitignore
+├── lib/
+│   ├── auth.js          # JWT & OAuth verification
+│   ├── cors.js          # CORS middleware
+│   ├── db.js            # MongoDB connection
+│   └── fileProcessor.js # Text extraction logic
+├── pages/
+│   ├── api/
+│   │   ├── auth/
+│   │   │   ├── verify.js    # OAuth verification
+│   │   │   └── guest.js     # Guest sessions
+│   │   ├── history/
+│   │   │   ├── index.js     # History listing
+│   │   │   └── [id].js      # Individual extraction
+│   │   └── upload.js        # File upload & processing
+│   └── index.js         # API documentation page
+├── next.config.js       # Next.js configuration
+└── package.json         # Dependencies
 ```
 
-## 🚀 Quick Start
+## 📝 Notes
 
-### Prerequisites
-- Node.js (v16 or higher)
-- Firebase project
-- Google Gemini AI API key
+- **Guest users**: Data is not persisted on backend, keep history client-side
+- **File limits**: 10MB maximum, validated on both client and server
+- **Supported formats**: PDF, DOCX, JPEG, PNG, GIF, BMP, TIFF, WebP
+- **OCR**: Uses Tesseract.js with English language support
+- **Database**: MongoDB Atlas recommended for production
+- **Deployment**: Optimized for Vercel serverless functions
 
-### Backend Setup
+## 🔒 Security Features
 
-1. **Clone and install dependencies**
-   ```bash
-   git clone https://github.com/shaheerali838/AI-Powered-Notes-Summarizer-Backend.git
-   cd AI-Powered-Notes-Summarizer-Backend
-   npm install
-   ```
-
-2. **Environment Variables**
-   Create a `.env` file in the root directory:
-   ```env
-   # Google Gemini AI
-   GEMINI_API_KEY=your_gemini_api_key_here
-   
-   # Firebase Admin SDK
-   FIREBASE_TYPE=service_account
-   FIREBASE_PROJECT_ID=your_project_id
-   FIREBASE_PRIVATE_KEY_ID=your_private_key_id
-   FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour Private Key\n-----END PRIVATE KEY-----\n"
-   FIREBASE_CLIENT_EMAIL=your_service_account_email
-   FIREBASE_CLIENT_ID=your_client_id
-   FIREBASE_AUTH_URI=https://accounts.google.com/o/oauth2/auth
-   FIREBASE_TOKEN_URI=https://oauth2.googleapis.com/token
-   FIREBASE_AUTH_PROVIDER_X509_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
-   FIREBASE_CLIENT_X509_CERT_URL=your_client_cert_url
-   FIREBASE_UNIVERSE_DOMAIN=googleapis.com
-   ```
-
-3. **Start development server**
-   ```bash
-   npm run dev
-   ```
-
-### Frontend Setup
-
-1. **Navigate to frontend directory**
-   ```bash
-   cd Frontend
-   npm install
-   ```
-
-2. **Environment Variables**
-   Create `.env` file in Frontend directory:
-   ```env
-   VITE_APP_API_URL=https://ai-powered-notes-summarizer-backend.vercel.app
-   ```
-
-3. **Firebase Client Configuration**
-   Update `src/config/firebaseClient.js` with your Firebase config:
-   ```javascript
-   const firebaseConfig = {
-     apiKey: "your-api-key",
-     authDomain: "ai-notes-summarize.firebaseapp.com",
-     projectId: "ai-notes-summarize",
-     storageBucket: "ai-notes-summarize.appspot.com",
-     messagingSenderId: "your-sender-id",
-     appId: "your-app-id"
-   };
-   ```
-
-4. **Start frontend**
-   ```bash
-   npm run dev
-   ```
-
-## 📡 API Documentation
-
-### Base URL
-- Development: `http://localhost:5000`
-- Production: `https://ai-powered-notes-summarizer-backend.vercel.app`
-
-### Endpoints
-
-#### Text Summarization
-```http
-POST /api/summarize
-Content-Type: application/json
-
-{
-  "text": "Your text content to summarize"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "unique_id",
-  "original": "Original text",
-  "summary": "AI-generated summary",
-  "keyPoints": ["1. First point", "2. Second point"]
-}
-```
-
-#### File Upload and Processing
-```http
-POST /api/notes/upload
-Content-Type: multipart/form-data
-
-file: [PDF/DOCX/Image file]
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "filename": "document.pdf",
-    "extractedText": "Extracted text content",
-    "summary": "AI-generated summary",
-    "keyPoints": ["1. Key point", "2. Another point"],
-    "timestamp": "2024-01-01T00:00:00.000Z"
-  }
-}
-```
-
-#### History Management
-```http
-GET /api/history
-Authorization: Bearer [firebase_token]
-```
-
-```http
-DELETE /api/history/:id
-Authorization: Bearer [firebase_token]
-```
-
-### Supported File Types
-- **Documents**: PDF, DOCX
-- **Images**: JPG, JPEG, PNG, GIF, BMP, TIFF, WebP
-- **Maximum Size**: 10MB per file
-
-## 🔒 Authentication & Security
-
-### Firebase Authentication
-- **Google OAuth**: Sign in with Google account
-- **Facebook OAuth**: Sign in with Facebook account  
-- **Email/Password**: Traditional email authentication
-- **Guest Mode**: Anonymous authentication for temporary use
-
-### Security Features
-- Firebase Admin SDK for server-side authentication
-- Token verification middleware
-- CORS configuration for secure cross-origin requests
-- Input validation and sanitization
-- File type and size restrictions
-
-### Firestore Security Rules
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      match /summaries/{summaryId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-    }
-    
-    match /history/{historyId} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
-```
-
-## 🚀 Deployment
-
-### Backend Deployment (Vercel)
-
-1. **Install Vercel CLI**
-   ```bash
-   npm i -g vercel
-   ```
-
-2. **Deploy to Vercel**
-   ```bash
-   vercel --prod
-   ```
-
-3. **Set Environment Variables**
-   Configure all environment variables in Vercel dashboard
-
-### Frontend Deployment (Vercel)
-
-1. **Build and Deploy**
-   ```bash
-   cd Frontend
-   vercel --prod
-   ```
-
-2. **Update API URL**
-   Set `VITE_APP_API_URL` to your deployed backend URL
-
-### Environment Configuration
-
-**Backend Environment Variables:**
-- `GEMINI_API_KEY`: Google Gemini AI API key
-- `FIREBASE_*`: Firebase Admin SDK credentials
-- `PORT`: Server port (default: 5000)
-
-**Frontend Environment Variables:**
-- `VITE_APP_API_URL`: Backend API URL
-
-## 🧪 Usage Examples
-
-### Text Summarization
-```bash
-curl -X POST https://ai-powered-notes-summarizer-backend.vercel.app/api/summarize \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Your long text content here..."}'
-```
-
-### File Upload
-```bash
-curl -X POST https://ai-powered-notes-summarizer-backend.vercel.app/api/notes/upload \
-  -F "file=@document.pdf"
-```
-
-### With Authentication
-```bash
-curl -X POST https://ai-powered-notes-summarizer-backend.vercel.app/api/summarize \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_FIREBASE_TOKEN" \
-  -d '{"text": "Your text content..."}'
-```
-
-## 🛠️ Development
-
-### Available Scripts
-
-**Backend:**
-```bash
-npm start       # Production server
-npm run dev     # Development with nodemon
-npm test        # Run tests
-```
-
-**Frontend:**
-```bash
-npm run dev     # Development server
-npm run build   # Production build
-npm run preview # Preview production build
-npm run lint    # Lint code
-```
-
-### Code Structure Guidelines
-
-**Controllers**: Handle HTTP requests and responses
-**Services**: Business logic and external API calls
-**Middleware**: Request processing and validation
-**Utils**: Helper functions and utilities
-
-### Error Handling
-- Comprehensive error catching and logging
-- User-friendly error messages
-- Proper HTTP status codes
-- Structured error responses
-
-## 📊 Performance & Limits
-
-### File Processing Limits
-- **Maximum file size**: 10MB per file
-- **Supported formats**: PDF, DOCX, Images
-- **OCR languages**: English (extensible)
-- **Concurrent uploads**: Multiple files supported
-
-### API Rate Limits
-- Google Gemini API limits apply
-- Firebase Firestore read/write limits
-- Vercel serverless function limits
-
-## 🤝 Contributing
-
-1. **Fork the repository**
-2. **Create feature branch**: `git checkout -b feature/amazing-feature`
-3. **Commit changes**: `git commit -m 'Add amazing feature'`
-4. **Push to branch**: `git push origin feature/amazing-feature`
-5. **Open Pull Request**
-
-### Development Guidelines
-- Follow RESTful API conventions
-- Write comprehensive error handling
-- Add JSDoc comments for functions
-- Test across different file types
-- Ensure responsive design
-- Maintain security best practices
-
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
-
-## 🙏 Acknowledgments
-
-- **Google Gemini AI** for advanced text summarization
-- **Firebase** for authentication and database services
-- **Tesseract.js** for OCR capabilities
-- **PDF-extraction** and **Mammoth.js** for document processing
-- **Vercel** for serverless deployment platform
+- JWT tokens with configurable expiry
+- Secure HTTP-only cookies
+- CORS protection with origin validation
+- File type and size validation
+- SQL injection protection (MongoDB)
+- No sensitive data in logs
+- Environment-based configuration
 
 ## 📞 Support
 
-For support and questions:
-
-1. Check [GitHub Issues](https://github.com/shaheerali838/AI-Powered-Notes-Summarizer-Backend/issues)
-2. Create a new issue with detailed information
-3. Contact: shaheerali838838@gmail.com
-
-## 🔮 Roadmap
-
-- [ ] Multi-language OCR support
-- [ ] Advanced summarization options (length, style)
-- [ ] Real-time collaborative features
-- [ ] Mobile app development
-- [ ] Advanced analytics dashboard
-- [ ] Integration with note-taking apps
-- [ ] Bulk processing capabilities
-- [ ] Custom AI model training
+For issues or questions:
+1. Check the logs in Vercel dashboard
+2. Verify all environment variables are set
+3. Test with the provided cURL commands
+4. Check MongoDB connection and permissions
 
 ---
 
-**Built with ❤️ by [Shaheer Ali](https://github.com/shaheerali838) using Google Gemini AI and modern web technologies**
+**Built for production deployment on Vercel with comprehensive error handling and security.**
