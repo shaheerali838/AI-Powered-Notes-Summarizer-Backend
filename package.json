@@ -1,54 +1,35 @@
 {
   "name": "ai-notes-summarizer-backend",
-  "version": "2.0.0",
-  "description": "AI-Powered Notes Summarizer Backend - Enhanced with comprehensive file processing",
+  "version": "3.0.0",
+  "description": "Serverless AI Notes Summarizer Backend - Next.js API Routes",
   "type": "module",
-  "main": "index.js",
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
-  },
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon src/server.js",
-    "build": "echo 'No build step required for Node.js'",
-    "test": "echo 'Tests to be implemented'",
-    "lint": "echo 'Linting to be implemented'",
-    "vercel-build": "echo 'Vercel build completed'",
-    "postinstall": "echo 'Dependencies installed successfully'"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "next-connect": "^1.0.0",
+    "multer": "^1.4.5-lts.1",
+    "mongodb": "^6.3.0",
+    "jsonwebtoken": "^9.0.2",
+    "google-auth-library": "^9.4.0",
+    "mammoth": "^1.6.0",
+    "tesseract.js": "^5.0.4",
+    "pdfjs-dist": "^4.0.379",
+    "cookie": "^0.6.0",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.2",
-    "express": "^5.1.0",
-    "firebase-admin": "^13.5.0",
-    "joi": "^18.0.1",
-    "mammoth": "^1.11.0",
-    "multer": "^2.0.2",
-    "tesseract.js": "^6.0.1"
+    "joi": "^17.11.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^14.0.0"
   },
-  "keywords": [
-    "ai",
-    "summarizer",
-    "notes",
-    "docx",
-    "ocr",
-    "gemini",
-    "firebase",
-    "text-extraction"
-  ],
-  "author": "Shaheer Ali",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/shaheerali838/AI-Powered-Notes-Summarizer-Backend.git"
-  },
-  "bugs": {
-    "url": "https://github.com/shaheerali838/AI-Powered-Notes-Summarizer-Backend/issues"
-  },
-  "homepage": "https://ai-powered-notes-summarizer-backend.vercel.app"
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
