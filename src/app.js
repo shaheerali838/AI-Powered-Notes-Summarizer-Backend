@@ -95,7 +95,7 @@ app.use((req, res, next) => {
 });
 
 // Handle preflight OPTIONS requests for all routes
-app.options("*", (req, res) => {
+app.options("/*", (req, res) => {
   res.header("Access-Control-Allow-Origin", req.get("Origin") || "*");
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-File-Name");
