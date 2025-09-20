@@ -1,89 +1,29 @@
-// src/services/fileProcessor.js - Bulletproof version without problematic PDF libraries
+// src/services/fileProcessor.js - Final Vercel-compatible version
 import mammoth from "mammoth";
 import { createWorker } from "tesseract.js";
 
 /**
- * Extract text from PDF using dynamic import to avoid startup issues
- * This version loads pdf-parse only when needed and handles errors gracefully
+ * Extract text from PDF - Currently disabled to avoid ENOENT errors
+ * Provides helpful error message with alternatives
  */
 export const extractTextFromPDF = async (buffer) => {
-  try {
-    console.log("🔄 Starting PDF text extraction...");
+  console.log("📄 PDF processing requested...");
 
-    // Try to dynamically import pdf-parse only when needed
-    let pdfParse;
-    try {
-      pdfParse = await import("pdf-parse");
-      console.log("✅ pdf-parse library loaded successfully");
-    } catch (importError) {
-      console.error("❌ Failed to load pdf-parse:", importError);
-      throw new Error(
-        "PDF processing is currently unavailable. Please try with a DOCX file or image instead."
-      );
-    }
+  // For now, we disable PDF processing to avoid the ENOENT error
+  // This can be re-enabled later with a different PDF processing solution
 
-    // Use the dynamically imported library
-    const parseFunction = pdfParse.default || pdfParse;
-
-    const data = await parseFunction(buffer, {
-      max: 0, // Parse all pages
-    });
-
-    if (!data.text || data.text.trim().length < 10) {
-      throw new Error(
-        "No meaningful text could be extracted from PDF. The PDF may be image-based, password-protected, or corrupted."
-      );
-    }
-
-    // Clean up the extracted text
-    const cleanText = data.text
-      .replace(/\s+/g, " ") // Normalize whitespace
-      .replace(/\n\s*\n/g, "\n\n") // Clean up line breaks
-      .trim();
-
-    console.log(
-      `✅ PDF extraction complete: ${cleanText.length} characters from ${
-        data.numpages || "unknown"
-      } pages`
-    );
-    return cleanText;
-  } catch (error) {
-    console.error("❌ PDF extraction failed:", error);
-
-    // Provide specific error messages
-    if (error.message.includes("Invalid PDF")) {
-      throw new Error("Invalid PDF file format");
-    } else if (error.message.includes("Password required")) {
-      throw new Error("PDF is password protected");
-    } else if (error.message.includes("unavailable")) {
-      throw new Error(error.message); // Pass through our custom message
-    } else {
-      throw new Error(`PDF extraction failed: ${error.message}`);
-    }
-  }
-};
-
-/**
- * Alternative PDF text extraction using OCR as fallback
- * If PDF parsing fails, convert to image and use OCR
- */
-const extractTextFromPDFWithOCR = async (buffer) => {
-  try {
-    console.log("🔄 Attempting PDF to image conversion for OCR...");
-
-    // This is a fallback - in a real scenario, you'd convert PDF pages to images
-    // For now, we'll return a helpful message
-    throw new Error(
-      "PDF text extraction failed. For image-based PDFs, please convert to image format (PNG/JPG) and upload again for OCR processing."
-    );
-  } catch (error) {
-    console.error("❌ PDF OCR fallback failed:", error);
-    throw error;
-  }
+  throw new Error(
+    "PDF processing is temporarily unavailable due to technical constraints in the serverless environment. " +
+      "Please try one of these alternatives: " +
+      "1) Convert your PDF to a DOCX file using online tools like SmallPDF or ILovePDF, " +
+      "2) Take screenshots of your PDF pages and upload them as images for OCR processing, " +
+      "3) Copy and paste the text directly from your PDF into the text input area."
+  );
 };
 
 /**
  * Extract text from DOCX buffer using Mammoth.js
+ * This is fully supported and works reliably
  */
 export const extractTextFromDOCX = async (buffer) => {
   try {
@@ -93,17 +33,21 @@ export const extractTextFromDOCX = async (buffer) => {
       buffer: buffer,
       options: {
         ignoreEmptyParagraphs: true,
+        convertImage: mammoth.images.ignore, // Ignore images for text extraction
       },
     });
 
     const extractedText = result.value.replace(/\s+/g, " ").trim();
 
     if (!extractedText || extractedText.length < 5) {
-      throw new Error("No meaningful text found in DOCX file");
+      throw new Error(
+        "No meaningful text found in DOCX file. The document may be empty or contain only images."
+      );
     }
 
+    // Log conversion messages if any
     if (result.messages && result.messages.length > 0) {
-      console.log("ℹ️ DOCX conversion messages:", result.messages);
+      console.log("ℹ️ DOCX conversion messages:", result.messages.slice(0, 3)); // Limit log spam
     }
 
     console.log(
@@ -118,12 +62,14 @@ export const extractTextFromDOCX = async (buffer) => {
 
 /**
  * Extract text from image buffer using Tesseract.js OCR
+ * This is fully supported and works reliably
  */
 export const extractTextFromImage = async (buffer) => {
   let worker;
   try {
     console.log("🔄 Starting OCR text extraction...");
 
+    // Create worker with English language
     worker = await createWorker("eng", 1, {
       logger: (m) => {
         if (m.status === "recognizing text") {
@@ -132,20 +78,23 @@ export const extractTextFromImage = async (buffer) => {
       },
     });
 
+    // Configure OCR parameters for better accuracy
     await worker.setParameters({
       tessedit_char_whitelist:
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,;:!?()-[]{}\"'/\\@#$%^&*+=<>|~`",
-      tessedit_pageseg_mode: "1",
+      tessedit_pageseg_mode: "1", // Automatic page segmentation with OSD
       preserve_interword_spaces: "1",
     });
 
+    // Perform OCR recognition
     const {
       data: { text, confidence },
     } = await worker.recognize(buffer);
 
+    // Clean up the extracted text
     const cleanText = text
-      .replace(/\n\s*\n/g, "\n")
-      .replace(/\s+/g, " ")
+      .replace(/\n\s*\n/g, "\n") // Clean up excessive line breaks
+      .replace(/\s+/g, " ") // Normalize whitespace
       .trim();
 
     console.log(
@@ -154,26 +103,42 @@ export const extractTextFromImage = async (buffer) => {
       } characters, confidence: ${Math.round(confidence)}%`
     );
 
+    // Validate extracted text
     if (!cleanText || cleanText.length < 5) {
       throw new Error(
-        "No text could be recognized in the image. Please ensure the image contains clear, readable text."
+        "No text could be recognized in the image. Please ensure the image contains clear, readable text with good contrast."
       );
     }
 
+    // Warn about low confidence
     if (confidence < 30) {
-      console.warn("⚠️ Low OCR confidence, text may be inaccurate");
+      console.warn(
+        "⚠️ Low OCR confidence detected. Text accuracy may be reduced."
+      );
     }
 
     return cleanText;
   } catch (error) {
     console.error("❌ OCR extraction failed:", error);
-    throw new Error(`Image text extraction failed: ${error.message}`);
+
+    // Provide helpful error messages
+    if (error.message.includes("recognize")) {
+      throw new Error(
+        "OCR processing failed. Please ensure the image is clear and contains readable text."
+      );
+    } else if (error.message.includes("worker")) {
+      throw new Error("OCR service initialization failed. Please try again.");
+    } else {
+      throw new Error(`Image text extraction failed: ${error.message}`);
+    }
   } finally {
+    // Always clean up the worker
     if (worker) {
       try {
         await worker.terminate();
+        console.log("🧹 OCR worker cleaned up successfully");
       } catch (terminateError) {
-        console.error("⚠️ Worker termination error:", terminateError);
+        console.error("⚠️ OCR worker cleanup error:", terminateError);
       }
     }
   }
@@ -181,6 +146,7 @@ export const extractTextFromImage = async (buffer) => {
 
 /**
  * Main text extraction function - routes to appropriate extractor
+ * Enhanced with better error handling and user guidance
  */
 export const extractTextFromFile = async (file) => {
   const { buffer, mimetype, originalname, size } = file;
@@ -197,23 +163,10 @@ export const extractTextFromFile = async (file) => {
     let extractedText = "";
     let fileTypeProcessed = "";
 
+    // Route to appropriate extraction method based on MIME type
     if (mimetype === "application/pdf") {
-      try {
-        extractedText = await extractTextFromPDF(buffer);
-        fileTypeProcessed = "PDF";
-      } catch (pdfError) {
-        console.warn(
-          "⚠️ PDF processing failed, suggesting alternatives:",
-          pdfError.message
-        );
-
-        // For now, throw the error with helpful suggestions
-        throw new Error(
-          `PDF processing failed: ${pdfError.message}. ` +
-            `Alternatives: 1) Convert PDF to DOCX format, 2) Take screenshots of PDF pages and upload as images for OCR processing, ` +
-            `3) Copy and paste the text directly into the text input area.`
-        );
-      }
+      extractedText = await extractTextFromPDF(buffer);
+      fileTypeProcessed = "PDF";
     } else if (
       mimetype ===
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -224,25 +177,36 @@ export const extractTextFromFile = async (file) => {
       extractedText = await extractTextFromImage(buffer);
       fileTypeProcessed = "Image (OCR)";
     } else {
+      const supportedTypes = [
+        "DOCX (Word Documents)",
+        "JPEG/PNG/GIF/BMP/TIFF/WebP (Images for OCR)",
+      ];
       throw new Error(
-        `Unsupported file type: ${mimetype}. Supported formats: DOCX documents and images (JPEG, PNG, GIF, BMP, TIFF, WebP) for OCR.`
+        `Unsupported file type: ${mimetype}. ` +
+          `Currently supported formats: ${supportedTypes.join(", ")}.`
       );
     }
 
+    // Validate extracted text
     if (!extractedText || typeof extractedText !== "string") {
-      throw new Error("Text extraction returned invalid data");
+      throw new Error(
+        "Text extraction returned invalid data. Please try a different file."
+      );
     }
 
+    // Clean up the final text
     const finalText = extractedText
-      .replace(/\r\n/g, "\n")
-      .replace(/\r/g, "\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .replace(/\s+$/gm, "")
-      .trim();
+      .replace(/\r\n/g, "\n") // Normalize Windows line endings
+      .replace(/\r/g, "\n") // Normalize old Mac line endings
+      .replace(/\n{3,}/g, "\n\n") // Limit consecutive line breaks
+      .replace(/\s+$/gm, "") // Remove trailing spaces from each line
+      .trim(); // Remove leading/trailing whitespace
 
+    // Final validation
     if (finalText.length < 10) {
       throw new Error(
-        "Extracted text is too short to be meaningful. Please check if the file contains readable text."
+        "The extracted text is too short to be meaningful. " +
+          "Please ensure your file contains sufficient readable text content."
       );
     }
 
@@ -253,19 +217,25 @@ export const extractTextFromFile = async (file) => {
   } catch (error) {
     console.error(`❌ Text extraction failed for ${originalname}:`, error);
 
-    // Return user-friendly error messages
-    if (error.message.includes("PDF processing failed")) {
-      throw new Error(error.message); // Pass through our detailed PDF error message
-    } else if (error.message.includes("Password")) {
-      throw new Error(`The file "${originalname}" is password protected.`);
+    // Provide user-friendly error messages with specific guidance
+    if (error.message.includes("PDF processing is temporarily unavailable")) {
+      throw new Error(error.message); // Pass through our detailed PDF message
+    } else if (error.message.includes("password protected")) {
+      throw new Error(
+        `The file "${originalname}" is password protected. Please remove the password and try again.`
+      );
     } else if (error.message.includes("No text could be recognized")) {
       throw new Error(
-        `No readable text was found in the image "${originalname}". Please ensure the image contains clear, high-contrast text.`
+        `No readable text was found in the image "${originalname}". ` +
+          `Please ensure the image contains clear, high-contrast text and try again.`
       );
     } else if (error.message.includes("DOCX extraction failed")) {
       throw new Error(
-        `The Word document "${originalname}" could not be processed. Please ensure it's a valid DOCX file.`
+        `The Word document "${originalname}" could not be processed. ` +
+          `Please ensure it's a valid DOCX file and not corrupted.`
       );
+    } else if (error.message.includes("Unsupported file type")) {
+      throw new Error(error.message); // Pass through our detailed file type message
     } else {
       throw new Error(
         `Failed to extract text from "${originalname}": ${error.message}`
@@ -279,7 +249,7 @@ export const extractTextFromFile = async (file) => {
  */
 export const getFileTypeDescription = (mimetype) => {
   const typeMap = {
-    "application/pdf": "PDF Document",
+    "application/pdf": "PDF Document (Limited Support)",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
       "Word Document (DOCX)",
     "image/jpeg": "JPEG Image",
@@ -296,11 +266,13 @@ export const getFileTypeDescription = (mimetype) => {
 
 /**
  * Validate file before processing
+ * Enhanced with current limitations
  */
 export const validateFileForProcessing = (file) => {
   const errors = [];
   const { mimetype, size, originalname } = file;
 
+  // Check file size (10MB limit)
   const maxSize = 10 * 1024 * 1024;
   if (size > maxSize) {
     errors.push(
@@ -308,75 +280,88 @@ export const validateFileForProcessing = (file) => {
     );
   }
 
-  // Updated to reflect what actually works
-  const allowedTypes = [
-    "application/pdf", // Note: PDF support is limited due to technical constraints
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  // Currently supported types (PDF temporarily disabled)
+  const fullySupported = [
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // DOCX
     "image/jpeg",
     "image/jpg",
     "image/png",
     "image/gif",
     "image/bmp",
     "image/tiff",
-    "image/webp",
+    "image/webp", // Images
   ];
 
-  if (!allowedTypes.includes(mimetype)) {
+  const limitedSupport = [
+    "application/pdf", // PDF - will show helpful error message
+  ];
+
+  const allAllowed = [...fullySupported, ...limitedSupport];
+
+  if (!allAllowed.includes(mimetype)) {
     errors.push(
-      `File type "${mimetype}" is not supported. Supported formats: DOCX documents and images (JPEG, PNG, GIF, BMP, TIFF, WebP).`
+      `File type "${mimetype}" is not supported. ` +
+        `Fully supported: DOCX documents and images (JPEG, PNG, GIF, BMP, TIFF, WebP) for OCR. ` +
+        `Limited support: PDF (with suggested alternatives).`
     );
   }
 
+  // Basic filename validation
   if (!originalname || originalname.length > 255) {
-    errors.push("Invalid filename");
+    errors.push("Invalid filename - filename is missing or too long");
+  }
+
+  // Check for potentially dangerous filenames
+  const dangerousChars = /[<>:"/\\|?*\x00-\x1f]/;
+  if (originalname && dangerousChars.test(originalname)) {
+    errors.push("Invalid filename - contains unsafe characters");
   }
 
   return errors;
 };
 
 /**
- * Get supported file types for client reference
+ * Get current service capabilities
  */
-export const getSupportedFileTypes = () => {
+export const getServiceCapabilities = () => {
   return {
-    fullySupported: [
-      {
-        type: "DOCX",
+    fullySupported: {
+      DOCX: {
         mimetype:
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        description: "Microsoft Word Documents",
+        description: "Microsoft Word Documents - Full text extraction",
+        reliability: "High",
       },
-      {
-        type: "JPEG",
-        mimetype: "image/jpeg",
-        description: "JPEG Images (OCR)",
+      Images: {
+        mimetypes: [
+          "image/jpeg",
+          "image/png",
+          "image/gif",
+          "image/bmp",
+          "image/tiff",
+          "image/webp",
+        ],
+        description: "Image files with OCR text recognition",
+        reliability: "High (depends on image quality)",
       },
-      { type: "PNG", mimetype: "image/png", description: "PNG Images (OCR)" },
-      { type: "GIF", mimetype: "image/gif", description: "GIF Images (OCR)" },
-      { type: "BMP", mimetype: "image/bmp", description: "BMP Images (OCR)" },
-      {
-        type: "TIFF",
-        mimetype: "image/tiff",
-        description: "TIFF Images (OCR)",
-      },
-      {
-        type: "WebP",
-        mimetype: "image/webp",
-        description: "WebP Images (OCR)",
-      },
-    ],
-    limitedSupport: [
-      {
-        type: "PDF",
+    },
+    limitedSupport: {
+      PDF: {
         mimetype: "application/pdf",
         description:
-          "PDF Documents (limited support due to technical constraints)",
+          "PDF Documents - Currently limited due to technical constraints",
+        reliability: "Temporarily unavailable",
+        alternatives: [
+          "Convert PDF to DOCX format",
+          "Take screenshots and upload as images",
+          "Copy and paste text directly",
+        ],
       },
-    ],
-    alternatives: [
-      "Convert PDF to DOCX using online tools",
-      "Take screenshots of PDF pages and upload as images",
-      "Copy and paste text directly from PDF into the text input area",
-    ],
+    },
+    limitations: {
+      maxFileSize: "10MB",
+      supportedLanguages: ["English (OCR)"],
+      note: "PDF support is temporarily limited in the serverless environment",
+    },
   };
 };
