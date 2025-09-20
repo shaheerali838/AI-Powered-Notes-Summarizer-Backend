@@ -28,18 +28,18 @@ const corsOptions = {
   credentials: true,
 };
 
-// Apply CORS globally
+// ✅ Apply CORS globally
 app.use(cors(corsOptions));
 
-// Explicitly handle OPTIONS preflight
-app.options("*", cors(corsOptions));
+// ✅ No need for app.options("/*")
+// Express automatically handles OPTIONS preflight if cors() is used globally
 
 // Routes
 app.use("/api/summarize", summarizeRoutes);
 app.use("/api/history", historyRoutes);
 app.use("/api/notes", notesRoutes);
 
-// Health Check
+// Health check
 app.get("/", (req, res) => res.send("✅ API is working!"));
 
 export default app;
