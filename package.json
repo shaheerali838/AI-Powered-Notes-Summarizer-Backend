@@ -1,20 +1,24 @@
 {
-  "name": "backend",
-  "version": "1.0.0",
-  "description": "Ai-Notes-Summarizer",
-  "license": "ISC",
-  "author": "",
+  "name": "ai-notes-summarizer-backend",
+  "version": "2.0.0",
+  "description": "AI-Powered Notes Summarizer Backend - Enhanced with comprehensive file processing",
   "type": "module",
   "main": "index.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "echo 'No build step required for Node.js'",
+    "test": "echo 'Tests to be implemented'",
+    "lint": "echo 'Linting to be implemented'",
+    "vercel-build": "echo 'Vercel build completed'",
+    "postinstall": "echo 'Dependencies installed successfully'"
   },
   "dependencies": {
-    "@google/genai": "^1.19.0",
     "@google/generative-ai": "^0.24.1",
-    "axios": "^1.12.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
@@ -22,7 +26,30 @@
     "joi": "^18.0.1",
     "mammoth": "^1.11.0",
     "multer": "^2.0.2",
-    "pdf-extraction": "^1.0.2",
     "tesseract.js": "^6.0.1"
-  }
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "ai",
+    "summarizer",
+    "notes",
+    "pdf",
+    "docx",
+    "ocr",
+    "gemini",
+    "firebase",
+    "text-extraction"
+  ],
+  "author": "Shaheer Ali",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shaheerali838/AI-Powered-Notes-Summarizer-Backend.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shaheerali838/AI-Powered-Notes-Summarizer-Backend/issues"
+  },
+  "homepage": "https://ai-powered-notes-summarizer-backend.vercel.app"
 }
