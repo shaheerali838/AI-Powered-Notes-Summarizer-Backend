@@ -94,6 +94,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// Handle preflight OPTIONS requests for all routes
+app.options("*", (req, res) => {
+  res.header("Access-Control-Allow-Origin", req.get("Origin") || "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-File-Name");
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Max-Age", "86400");
+  res.sendStatus(200);
+});
+
 // Health check endpoint
 app.get("/", (req, res) => {
   res.status(200).json({
